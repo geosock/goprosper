@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from typing import List, Dict, Any
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -8,12 +9,11 @@ class LLMClient:
     
     def __init__(self):
         """Initialize the LLM client with configuration from environment variables"""
-        load_dotenv()
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
+        api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
+        if not api_key:
             raise ValueError("Missing required environment variable: OPENAI_API_KEY")
         
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = OpenAI(api_key=api_key)
         self.model = "gpt-4o"  # Using GPT-4o for best performance
     
     def _format_question_data(self, question: Dict[str, Any]) -> str:

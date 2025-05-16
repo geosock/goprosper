@@ -21,6 +21,19 @@ os.environ['STREAMLIT_SERVER_WATCH_DIRS'] = 'false'
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # Load environment variables
+def get_env_var(var_name: str, default: str = None) -> str:
+    """Get environment variable from either .env file or Streamlit secrets"""
+    # Try to get from Streamlit secrets first (production)
+    if var_name in st.secrets:
+        return st.secrets[var_name]
+    
+    # If not in secrets, try to get from environment (local development)
+    value = os.getenv(var_name, default)
+    if value is None:
+        raise ValueError(f"Required environment variable {var_name} not found")
+    return value
+
+# Try to load .env file for local development
 load_dotenv()
 
 # Initialize session state
@@ -491,7 +504,7 @@ def display_question_data(question_id: str, months: int = 12, end_date: Optional
 # Authentication
 def check_credentials(username, password):
     # In production, you should use environment variables for these
-    return username == os.getenv("APP_USERNAME", "admin") and password == os.getenv("APP_PASSWORD", "admin")
+    return username == get_env_var("APP_USERNAME", "admin") and password == get_env_var("APP_PASSWORD", "admin")
 
 def login():
     st.title("Prosper Insights Survey Analysis")
@@ -598,7 +611,7 @@ def show_help():
         st.markdown("""
         ###
 
-       Hey there! This is the very, very early version of a tool to analyze survey data from Prosper Insights. This app was created by me, Ben, and you can reach me at wedepo_b1@denison.edu. Please mess around and try to break it! If/when you do, please let me know! I added a quick breakdown of the app below. Thanks for checking it out!
+       Hey there! This is the very, very early version of a tool to analyze survey data from Prosper Insights. This app was created by me, Ben, and you can reach me at wedepo_b1@denison.edu. Please mess around and try to break it! If/when you do, please let me know! I added a quick breakdown of the app below. A few issues I am already aware of: The visuals are not polished and may render poorly. The question search occasionally returns strange results, so try to be as specific as possible for now! Thanks for checking it out!
 
         #### Search Questions
         - Use the search bar to find questions using natural language

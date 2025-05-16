@@ -4,19 +4,24 @@ from typing import Dict, Any, Optional, List, Union
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+import streamlit as st
 
 class ProsperAPI:
     """Client for interacting with the Prosper Insights API"""
     
     def __init__(self):
         """Initialize the API client with configuration from environment variables"""
-        load_dotenv()
-        self.base_url = os.getenv("API_URL", "")
-        self.api_key = os.getenv("API_KEY", "")
-        self.study_name = os.getenv("STUDY_NAME", "")
+        self.base_url = st.secrets.get("PROSPER_API_URL", os.getenv("PROSPER_API_URL"))
+        self.api_key = st.secrets.get("PROSPER_API_KEY", os.getenv("PROSPER_API_KEY"))
+        self.study_name = st.secrets.get("STUDY_NAME", os.getenv("STUDY_NAME"))
         
         if not all([self.base_url, self.api_key, self.study_name]):
-            raise ValueError("Missing required environment variables: API_URL, API_KEY, or STUDY_NAME")
+            raise ValueError("Missing required environment variables. Please check your configuration.")
+        
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
     
     def _make_request(self, endpoint: str, method: str = "GET", params: Optional[Dict] = None) -> Dict:
         """Make an API request with proper headers and error handling
@@ -43,7 +48,8 @@ class ProsperAPI:
             response = requests.request(
                 method=method,
                 url=url,
-                params=params
+                params=params,
+                headers=self.headers
             )
             response.raise_for_status()
             return response.json()
