@@ -536,10 +536,21 @@ def display_search_page(prosper_client, semantic_search):
     
     # Initialize semantic search if not already done
     if st.session_state.semantic_search is None:
-        questions_file = os.getenv("QUESTIONS_FILE", "questions.json")
-        if os.path.exists(questions_file):
+        try:
+            # Get the directory where app.py is located
+            app_dir = os.path.dirname(os.path.abspath(__file__))
+            questions_file = os.path.join(app_dir, "questions.json")
+            
+            if not os.path.exists(questions_file):
+                st.error(f"Questions file not found at {questions_file}. Please check your configuration.")
+                return
+                
             st.session_state.semantic_search = semantic_search
             st.session_state.semantic_search.load_questions(questions_file)
+            st.success("Semantic search initialized successfully!")
+        except Exception as e:
+            st.error(f"Failed to initialize semantic search: {str(e)}")
+            return
     
     # Sidebar for configuration
     with st.sidebar:
@@ -547,7 +558,11 @@ def display_search_page(prosper_client, semantic_search):
         api_url = st.text_input("API URL", value=st.session_state.api_client.base_url)
         api_key = st.text_input("API Key", value=st.session_state.api_client.api_key, type="password")
         study_name = st.text_input("Study Name", value=st.session_state.api_client.study_name)
-        questions_file = st.text_input("Questions File", value=os.getenv("QUESTIONS_FILE", "questions.json"))
+        
+        # Show the questions file path but make it read-only
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        questions_file = os.path.join(app_dir, "questions.json")
+        st.text_input("Questions File", value=questions_file, disabled=True)
         
         # Update configuration if changed
         if (api_url != st.session_state.api_client.base_url or 
@@ -562,48 +577,51 @@ def display_search_page(prosper_client, semantic_search):
     search_query = st.text_input("Enter your search query:")
     
     if search_query:
-        # Perform semantic search
-        results = st.session_state.semantic_search.search(search_query)
-        
-        if results:
-            st.subheader("Search Results")
+        try:
+            # Perform semantic search
+            results = st.session_state.semantic_search.search(search_query)
             
-            # Display results in a selectbox
-            selected_question = st.selectbox(
-                "Select a question:",
-                options=results,
-                format_func=lambda x: f"{x['question_text']} (ID: {x['question_id']})",
-                key="question_select"
-            )
-            
-            if selected_question:
-                st.subheader("Question Details")
+            if results:
+                st.subheader("Search Results")
                 
-                # Parameters for data retrieval
-                col1, col2 = st.columns(2)
-                with col1:
-                    months = st.number_input("Number of months", min_value=0, max_value=60, value=12)
-                with col2:
-                    end_date = st.date_input("End date", value=datetime.now())
-                
-                # Create segment selector
-                selected_segments = create_segment_selector()
-                
-                # Create segment string
-                segment = "all"
-                if selected_segments:
-                    segment = st.session_state.api_client.create_segment_string(selected_segments)
-                    st.write(f"**Selected Segment:** {segment}")
-                
-                # Display question data
-                display_question_data(
-                    question_id=selected_question['question_id'],
-                    months=months,
-                    end_date=end_date.strftime("%Y-%m-%d") if months > 0 else None,
-                    segment=segment
+                # Display results in a selectbox
+                selected_question = st.selectbox(
+                    "Select a question:",
+                    options=results,
+                    format_func=lambda x: f"{x['question_text']} (ID: {x['question_id']})",
+                    key="question_select"
                 )
-        else:
-            st.warning("No results found for your search query.")
+                
+                if selected_question:
+                    st.subheader("Question Details")
+                    
+                    # Parameters for data retrieval
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        months = st.number_input("Number of months", min_value=0, max_value=60, value=12)
+                    with col2:
+                        end_date = st.date_input("End date", value=datetime.now())
+                    
+                    # Create segment selector
+                    selected_segments = create_segment_selector()
+                    
+                    # Create segment string
+                    segment = "all"
+                    if selected_segments:
+                        segment = st.session_state.api_client.create_segment_string(selected_segments)
+                        st.write(f"**Selected Segment:** {segment}")
+                    
+                    # Display question data
+                    display_question_data(
+                        question_id=selected_question['question_id'],
+                        months=months,
+                        end_date=end_date.strftime("%Y-%m-%d") if months > 0 else None,
+                        segment=segment
+                    )
+            else:
+                st.warning("No results found for your search query.")
+        except Exception as e:
+            st.error(f"Error performing search: {str(e)}")
 
 def show_help():
     """Display help instructions in an expandable section"""

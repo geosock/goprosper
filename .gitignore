@@ -37,8 +37,6 @@ env/
 
 # Application specific
 saved_states/
-*.json
-!questions.json  # Keep the questions file
 
 # Logs
 *.log
