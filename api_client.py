@@ -11,8 +11,8 @@ class ProsperAPI:
     
     def __init__(self):
         """Initialize the API client with configuration from environment variables"""
-        self.base_url = st.secrets.get("API_URL", os.getenv("API_URL"))
-        self.api_key = st.secrets.get("API_KEY", os.getenv("API_KEY"))
+        self.base_url = st.secrets.get("PROSPER_API_URL", os.getenv("PROSPER_API_URL"))
+        self.api_key = st.secrets.get("PROSPER_API_KEY", os.getenv("PROSPER_API_KEY"))
         self.study_name = st.secrets.get("STUDY_NAME", os.getenv("STUDY_NAME"))
         
         if not all([self.base_url, self.api_key, self.study_name]):
