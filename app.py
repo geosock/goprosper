@@ -635,6 +635,13 @@ def show_help():
         - Delete states you no longer need
         """)
 
+def display_report_builder():
+    """Display the report builder interface"""
+    st.header("Report Builder")
+    
+    # Display the report builder interface
+    st.session_state.report_builder.display_builder()
+
 # Main app
 def main():
     if not st.session_state.authenticated:
@@ -654,7 +661,7 @@ def main():
     show_help()
     st.sidebar.markdown("---")  # Add a separator
     
-    page = st.sidebar.radio("Go to", ["Search Questions", "Saved Questions & Analysis", "Saved States"])
+    page = st.sidebar.radio("Go to", ["Search Questions", "Saved Questions & Analysis", "Saved States", "Report Builder"])
     
     # Logout button
     if st.sidebar.button("Logout"):
@@ -666,8 +673,10 @@ def main():
         display_search_page(prosper_client, semantic_search)
     elif page == "Saved Questions & Analysis":
         display_saved_questions()
-    else:
+    elif page == "Saved States":
         display_saved_states()
+    else:  # Report Builder
+        display_report_builder()
 
 if __name__ == "__main__":
     main() 

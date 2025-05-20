@@ -59,80 +59,75 @@ class ReportBuilder:
         
         return sections
     
-    def add_content(self, content: str, content_type: str = "text"):
+    def add_content(self, content: str, title: str = None, level: int = 1):
         """Add content to the report
         
         Args:
             content (str): The content to add
-            content_type (str): Type of content ("text" or "visualization")
+            title (str, optional): Section title. Defaults to None.
+            level (int, optional): Header level. Defaults to 1.
         """
-        if content_type == "text":
-            # Parse markdown content into sections
-            sections = self._parse_markdown_sections(content)
+        # Parse the content into sections
+        sections = self._parse_markdown_sections(content)
+        
+        # If no sections were found, add the content as a single section
+        if not sections:
+            if title:
+                st.session_state.report_content.append({
+                    "type": "text",
+                    "title": title,
+                    "content": content,
+                    "level": level
+                })
+            else:
+                st.session_state.report_content.append({
+                    "type": "text",
+                    "title": "Section",
+                    "content": content,
+                    "level": level
+                })
+        else:
+            # Add each section to the report
             for section in sections:
                 st.session_state.report_content.append({
                     "type": "text",
                     "title": section["title"],
                     "content": section["content"].strip(),
-                    "level": section["level"],
-                    "timestamp": datetime.now().isoformat()
+                    "level": section["level"]
                 })
-        else:
-            st.session_state.report_content.append({
-                "type": content_type,
-                "content": content,
-                "timestamp": datetime.now().isoformat()
-            })
     
-    def add_visualization(self, fig: go.Figure, title: str = ""):
+    def add_visualization(self, fig: go.Figure, title: str = None):
         """Add a visualization to the report
         
         Args:
-            fig (go.Figure): Plotly figure to add
-            title (str): Title for the visualization
+            fig (go.Figure): The Plotly figure to add
+            title (str, optional): Visualization title. Defaults to None.
         """
         st.session_state.report_content.append({
             "type": "visualization",
-            "content": fig,
-            "title": title,
-            "timestamp": datetime.now().isoformat()
+            "title": title or "Visualization",
+            "content": fig
         })
     
-    def edit_content(self, index: int, new_content: str):
-        """Edit existing content in the report
+    def move_section(self, from_idx: int, to_idx: int):
+        """Move a section in the report
         
         Args:
-            index (int): Index of the content to edit
-            new_content (str): New content
+            from_idx (int): Index of section to move
+            to_idx (int): Index to move section to
         """
-        if 0 <= index < len(st.session_state.report_content):
-            st.session_state.report_content[index]["content"] = new_content
+        if 0 <= from_idx < len(st.session_state.report_content) and 0 <= to_idx < len(st.session_state.report_content):
+            item = st.session_state.report_content.pop(from_idx)
+            st.session_state.report_content.insert(to_idx, item)
     
-    def remove_content(self, index: int):
+    def remove_content(self, idx: int):
         """Remove content from the report
         
         Args:
-            index (int): Index of the content to remove
+            idx (int): Index of content to remove
         """
-        if 0 <= index < len(st.session_state.report_content):
-            st.session_state.report_content.pop(index)
-    
-    def move_section(self, from_index: int, to_index: int):
-        """Move a section to a new position
-        
-        Args:
-            from_index (int): Current index of the section
-            to_index (int): New index for the section
-        """
-        if (0 <= from_index < len(st.session_state.report_content) and 
-            0 <= to_index < len(st.session_state.report_content)):
-            section = st.session_state.report_content.pop(from_index)
-            st.session_state.report_content.insert(to_index, section)
-    
-    def clear_report(self):
-        """Clear all report content"""
-        st.session_state.report_content = []
-        st.session_state.report_visualizations = []
+        if 0 <= idx < len(st.session_state.report_content):
+            st.session_state.report_content.pop(idx)
     
     def export_to_word(self, title: str = "Report") -> bytes:
         """Export the report to a Word document
@@ -223,20 +218,21 @@ class ReportBuilder:
     
     def display_builder(self):
         """Display the report builder interface"""
-        st.subheader("Report Builder")
+        st.title("Report Builder")
         
-        # Display current report content
-        for i, item in enumerate(st.session_state.report_content):
-            with st.expander(f"{item.get('title', f'Section {i+1}')} - {item['type'].capitalize()}", expanded=True):
+        # Display current content
+        if st.session_state.report_content:
+            st.subheader("Current Report Content")
+            
+            for i, item in enumerate(st.session_state.report_content):
+                st.markdown("---")
+                
                 if item["type"] == "text":
-                    # Text editor for text content
-                    edited_content = st.text_area(
-                        "Edit content",
-                        value=item["content"],
-                        key=f"editor_{i}"
-                    )
-                    if edited_content != item["content"]:
-                        self.edit_content(i, edited_content)
+                    # Display section title
+                    st.markdown(f"### {item['title']}")
+                    
+                    # Display content
+                    st.markdown(item["content"])
                     
                     # Section controls
                     col1, col2, col3 = st.columns([1, 1, 1])
@@ -254,6 +250,7 @@ class ReportBuilder:
                         if st.button("Remove Section", key=f"remove_{i}"):
                             self.remove_content(i)
                             st.rerun()
+                
                 elif item["type"] == "visualization":
                     # Display visualization
                     st.plotly_chart(item["content"], use_container_width=True, key=f"report_chart_{i}")
@@ -295,25 +292,4 @@ class ReportBuilder:
                 )
             else:  # PDF
                 # TODO: Implement PDF export
-                st.info("PDF export coming soon!")
-        
-        # Clear report button
-        if st.button("Clear Report", key="clear_report_button"):
-            self.clear_report()
-            st.rerun()
-    
-    def get_content(self) -> List[Dict[str, Any]]:
-        """Get the current report content
-        
-        Returns:
-            List[Dict]: List of content items
-        """
-        return st.session_state.report_content
-    
-    def set_content(self, content: List[Dict[str, Any]]):
-        """Set the report content
-        
-        Args:
-            content (List[Dict]): List of content items to set
-        """
-        st.session_state.report_content = content 
+                st.info("PDF export coming soon!") 
